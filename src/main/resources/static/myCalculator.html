@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Web Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            margin: 0;
+        }
+        .calculator-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        input[type="number"], select, button {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #resultDisplay {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-container">
+        <h1>Web Calculator</h1>
+        <input type="number" id="num1" placeholder="First Number" required>
+        <select id="operation">
+            <option value="add">+</option>
+            <option value="subtract">-</option>
+            <option value="multiply">*</option>
+            <option value="divide">/</option>
+        </select>
+        <input type="number" id="num2" placeholder="Second Number" required>
+        <button onclick="calculate()">Calculate</button>
+        <div id="resultDisplay"></div>
+        <div id="errorDisplay" class="error"></div>
+    </div>
+
+    <script>
+        async function calculate() {
+            const num1 = parseFloat(document.getElementById('num1').value);
+            const num2 = parseFloat(document.getElementById('num2').value);
+            const operation = document.getElementById('operation').value;
+            const resultDisplay = document.getElementById('resultDisplay');
+            const errorDisplay = document.getElementById('errorDisplay');
+
+            resultDisplay.textContent = ''; // Clear previous result
+            errorDisplay.textContent = ''; // Clear previous error
+
+            if (isNaN(num1) || isNaN(num2)) {
+                errorDisplay.textContent = 'Please enter valid numbers.';
+                return;
+            }
+
+            const requestBody = {
+                num1: num1,
+                num2: num2,
+                operation: operation
+            };
+
+            try {
+                // Send data to Spring Boot backend
+                const response = await fetch('/api/calculator/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json(); // Parse JSON response
+
+                if (response.ok) { // Check if HTTP status is 2xx
+                    if (data.result !== null) {
+                        resultDisplay.textContent = `Result: ${data.result}`;
+                    } else {
+                        // This case handles a successful 200 OK with a null result (shouldn't happen with current backend)
+                        errorDisplay.textContent = 'Calculation result is null.';
+                    }
+                } else { // Handle HTTP errors (e.g., 400 Bad Request, 500 Internal Server Error)
+                    if (data.errorMessage) {
+                        errorDisplay.textContent = `Error: ${data.errorMessage}`;
+                    } else {
+                        errorDisplay.textContent = `Error: ${response.status} ${response.statusText}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Network or parsing error:', error);
+                errorDisplay.textContent = 'An unexpected network error occurred.';
+            }
+        }
+    </script>
+</body>
+</html>
